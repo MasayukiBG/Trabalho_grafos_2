@@ -11,86 +11,85 @@ import org.w3c.dom.NodeList;
 
 
 public class ReadXMLFile {
-public void calcularBetweennessCentrality(Graph G) {
-    // Verifica se o grafo tem vértices
-    if (G.V() == 0) {
+    public void calcularBetweennessCentrality(Graph G) {
+        if (G.V() == 0) {
         System.err.println("Grafo vazio - nenhum vértice para calcular");
         return;
     }
-
-    try (PrintWriter writer = new PrintWriter(new FileWriter("betweenness_centrality.txt"))) {
-        int V = G.V();
-        double[] centrality = new double[V];
-
-        for (int s = 0; s < V; s++) {
-            // BFS initialization
-            int[] distances = new int[V];
-            int[] numShortestPaths = new int[V];
-            int[][] predecessors = new int[V][V]; // Max V predecessors per node
-            int[] predCount = new int[V]; // Count of predecessors per node
+    
+    try (PrintWriter escritor = new PrintWriter(new FileWriter("betweenness_centrality.txt"))) {
+        int numVertices = G.V();
+        double[] centralidade = new double[numVertices];
+    
+        for (int origem = 0; origem < numVertices; origem++) {
+            // Inicialização da BFS
+            int[] distancias = new int[numVertices];
+            int[] numCaminhosMinimos = new int[numVertices];
+            int[][] predecessores = new int[numVertices][numVertices]; // Máximo de predecessores por nó
+            int[] contPredecessores = new int[numVertices]; // Contador de predecessores por nó
             
-            Arrays.fill(distances, -1);
-            distances[s] = 0;
-            numShortestPaths[s] = 1;
-
-            // Queue for BFS
-            int[] queue = new int[V];
-            int front = 0, rear = 0;
-            queue[rear++] = s;
-
-            // Stack for processing
-            int[] stack = new int[V];
-            int top = -1;
-
-            // Forward pass (BFS)
-            while (front < rear) {
-                int v = queue[front++];
-                stack[++top] = v;
-
-                for (int w : G.adj(v)) {
-                    // If discovering w for the first time
-                    if (distances[w] < 0) {
-                        distances[w] = distances[v] + 1;
-                        queue[rear++] = w;
+            Arrays.fill(distancias, -1);
+            distancias[origem] = 0;
+            numCaminhosMinimos[origem] = 1;
+        
+            // Fila para BFS
+            int[] fila = new int[numVertices];
+            int inicio = 0, fim = 0;
+            fila[fim++] = origem;
+        
+            // Pilha para processamento
+            int[] pilha = new int[numVertices];
+            int topo = -1;
+        
+            // Fase forward (BFS)
+            while (inicio < fim) {
+                int verticeAtual = fila[inicio++];
+                pilha[++topo] = verticeAtual;
+            
+                for (int vizinho : G.adj(verticeAtual)) {
+                    // Se está descobrindo o vizinho pela primeira vez
+                    if (distancias[vizinho] < 0) {
+                        distancias[vizinho] = distancias[verticeAtual] + 1;
+                        fila[fim++] = vizinho;
                     }
-                    // If this is a shortest path to w through v
-                    if (distances[w] == distances[v] + 1) {
-                        numShortestPaths[w] += numShortestPaths[v];
-                        predecessors[w][predCount[w]++] = v;
+                    // Se este é um caminho mínimo para o vizinho através do vértice atual
+                    if (distancias[vizinho] == distancias[verticeAtual] + 1) {
+                        numCaminhosMinimos[vizinho] += numCaminhosMinimos[verticeAtual];
+                        predecessores[vizinho][contPredecessores[vizinho]++] = verticeAtual;
                     }
                 }
             }
-
-            // Backward pass (dependency accumulation)
-            double[] dependency = new double[V];
-            while (top >= 0) {
-                int w = stack[top--];
-                for (int i = 0; i < predCount[w]; i++) {
-                    int v = predecessors[w][i];
-                    double fraction = (double) numShortestPaths[v] / numShortestPaths[w];
-                    dependency[v] += fraction * (1 + dependency[w]);
+            
+            // Fase backward (acúmulo de dependência)
+            double[] dependencia = new double[numVertices];
+            while (topo >= 0) {
+                int vertice = pilha[topo--];
+                for (int i = 0; i < contPredecessores[vertice]; i++) {
+                    int predecessor = predecessores[vertice][i];
+                    double fracao = (double) numCaminhosMinimos[predecessor] / numCaminhosMinimos[vertice];
+                    dependencia[predecessor] += fracao * (1 + dependencia[vertice]);
                 }
-                if (w != s) {
-                    centrality[w] += dependency[w];
+                if (vertice != origem) {
+                    centralidade[vertice] += dependencia[vertice];
                 }
             }
         }
-
-        // Output results (same format as excentricidade)
-        for (int v = 0; v < V; v++) {
-            double finalValue = centrality[v] / 2; // Undirected graph adjustment
-            String linhaSaida = String.format("Betweenness Centrality do Vértice %d: %.4f", v, finalValue);
-            System.out.println(linhaSaida);
-            writer.println(linhaSaida);
+    
+        // Escreve os resultados
+        for (int v = 0; v < numVertices; v++) {
+            double resultado = centralidade[v] / 2.0;
+            String saida = String.format("Betweenness Centrality do Vértice %d: %.4f", v, resultado);
+            System.out.println(saida);
+            escritor.println(saida);
         }
-
-        System.out.println("\n=========================================\n");
-
-    } catch (Exception e) {
-        System.err.println("Erro ao escrever no arquivo de betweenness centrality: " + e.getMessage());
-        e.printStackTrace();
-    }
-}
+            
+                System.out.println("\n=========================================\n");
+            
+            } catch (Exception e) {
+                System.err.println("Erro ao escrever no arquivo de betweenness centrality: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
 
     public static void main(String[] args) {
 
